@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAP - HC Demography Live Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse CDN untuk Direct Google Sheets CSV Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #F8FAFC; color: #1E293B; }
+        .light-card { background: #FFFFFF; border: 1px solid #E2E8F0; box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.05); }
+        .gold-accent { background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); }
+        .card-glow { box-shadow: 0 10px 25px -5px rgba(197, 160, 89, 0.15); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F1F5F9; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+    </style>
+</head>
+<body class="font-sans min-h-screen">
+
+    <!-- ================= 1. LOGIN PAGE ================= -->
+    <div id="loginPage" class="min-h-screen flex items-center justify-center p-4 bg-slate-100">
+        <div class="max-w-md w-full bg-white border border-slate-200 rounded-2xl p-8 shadow-xl space-y-6">
+            <div class="text-center space-y-2">
+                <div class="bg-amber-500/10 p-3 rounded-xl inline-flex items-center justify-center h-16 w-16 shadow-inner mb-2 border border-amber-500/20">
+                    <svg viewBox="0 0 300 300" class="w-full h-full">
+                        <text x="25" y="210" font-family="serif" font-size="190" font-weight="bold" fill="#0F172A">D</text>
+                        <text x="175" y="210" font-family="serif" font-size="190" font-weight="bold" fill="#0F172A">P</text>
+                        <text x="78" y="222" font-family="serif" font-size="230" fill="none" stroke="#0F172A" stroke-width="6">A</text>
+                        <path d="M 95 160 Q 150 200 210 155" fill="none" stroke="#D97706" stroke-width="18" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900 tracking-wide">DAP HC Analytics</h2>
+                <p class="text-xs text-slate-500">Portal Dashboard Demography HC</p>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Username</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-user text-sm"></i>
+                        </span>
+                        <input type="text" id="username" required placeholder="admin" 
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg py-2.5 pl-10 pr-4 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-lock text-sm"></i>
+                        </span>
+                        <input type="password" id="password" required placeholder="••••••••" 
+                            class="w-full bg-slate-50 border border-slate-300 rounded-lg py-2.5 pl-10 pr-4 text-sm text-slate-900 focus:outline-none focus:border-amber-500 focus:bg-white transition">
+                    </div>
+                </div>
+
+                <div id="loginError" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 p-2.5 rounded-lg text-center">
+                    Username atau password salah!
+                </div>
+
+                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-lg transition shadow-md text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> Masuk Dashboard
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= 2. DASHBOARD MAIN PORTAL ================= -->
+    <div id="dashboardPage" class="hidden min-h-screen pb-12">
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-50 px-6 py-4 shadow-sm">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="bg-amber-500/10 p-2 rounded-lg flex items-center justify-center h-12 w-12 border border-amber-500/20 shadow-sm">
+                        <svg viewBox="0 0 300 300" class="w-full h-full">
+                            <text x="25" y="210" font-family="serif" font-size="190" font-weight="bold" fill="#0F172A">D</text>
+                            <text x="175" y="210" font-family="serif" font-size="190" font-weight="bold" fill="#0F172A">P</text>
+                            <text x="78" y="222" font-family="serif" font-size="230" fill="none" stroke="#0F172A" stroke-width="6">A</text>
+                            <path d="M 95 160 Q 150 200 210 155" fill="none" stroke="#D97706" stroke-width="18" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 tracking-wide">DAP <span class="text-amber-600 font-semibold">| HC Demography Live</span></h1>
+                        <p class="text-xs text-slate-500">Data Analytics & People Insights</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-slate-700 font-semibold bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200" id="loggedInUserDisplay">
+                        <i class="fa-solid fa-user-circle text-amber-600 me-1"></i> Admin
+                    </span>
+                    <button onclick="fetchGoogleSheetsData()" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs px-3.5 py-2 rounded-lg transition flex items-center gap-2 font-medium">
+                        <i class="fa-solid fa-rotate-right text-amber-600"></i> Refresh Data Live
+                    </button>
+                    <button onclick="handleLogout()" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs px-3.5 py-2 rounded-lg transition font-medium">
+                        <i class="fa-solid fa-power-off me-1"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+
+            <!-- FILTER BAR -->
+            <div class="gold-accent text-white p-4 rounded-xl shadow-md flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="flex items-center gap-2 text-xs font-semibold text-amber-400 uppercase tracking-wider">
+                    <i class="fa-solid fa-filter"></i> Daily Data Filters
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 w-full md:w-auto">
+                    <div>
+                        <label class="block text-[10px] text-amber-300 uppercase font-bold mb-0.5"><i class="fa-solid fa-calendar-day me-1"></i>View As Date:</label>
+                        <select id="filterDate" onchange="updateDashboard()" class="w-full bg-slate-800 border border-amber-500/70 text-xs font-bold rounded-lg p-2 text-amber-300 focus:border-amber-400 outline-none">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] text-slate-300 uppercase font-bold mb-0.5">Work Location:</label>
+                        <select id="filterLoc" onchange="updateDashboard()" class="w-full bg-slate-800 border border-slate-600 text-xs rounded-lg p-2 text-slate-100 focus:border-amber-400 outline-none">
+                            <option value="ALL">Semua Lokasi Kerja</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] text-slate-300 uppercase font-bold mb-0.5">Employment Status:</label>
+                        <select id="filterStatus" onchange="updateDashboard()" class="w-full bg-slate-800 border border-slate-600 text-xs rounded-lg p-2 text-slate-100 focus:border-amber-400 outline-none">
+                            <option value="ALL">Semua Status Kepegawaian</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] text-slate-300 uppercase font-bold mb-0.5">Directorate:</label>
+                        <select id="filterDirectorate" onchange="updateDashboard()" class="w-full bg-slate-800 border border-slate-600 text-xs rounded-lg p-2 text-slate-100 focus:border-amber-400 outline-none">
+                            <option value="ALL">Semua Directorate</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI SCORECARDS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="light-card rounded-xl p-5 border-l-4 border-l-blue-500">
+                    <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Total Headcount</p>
+                    <h3 class="text-3xl font-extrabold text-slate-900 mt-1" id="kpiTotal">0</h3>
+                    <div class="mt-2 text-xs text-blue-600 font-medium" id="kpiDateDisplay">Posisi Tanggal: -</div>
+                </div>
+
+                <div class="light-card rounded-xl p-5 border-l-4 border-l-amber-500">
+                    <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Permanent Staff</p>
+                    <h3 class="text-3xl font-extrabold text-amber-600 mt-1" id="kpiPermanent">0%</h3>
+                    <div class="mt-2 text-xs text-slate-500" id="kpiPermSub">0 Karyawan</div>
+                </div>
+
+                <div class="light-card rounded-xl p-5 border-l-4 border-l-emerald-500">
+                    <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Average Age</p>
+                    <h3 class="text-3xl font-extrabold text-slate-900 mt-1" id="kpiAge">0 <span class="text-sm font-normal text-slate-500">Thn</span></h3>
+                    <div class="mt-2 text-xs text-emerald-600 font-medium">Rata-rata Usia</div>
+                </div>
+
+                <div class="light-card rounded-xl p-5 border-l-4 border-l-purple-500">
+                    <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Average Tenure</p>
+                    <h3 class="text-3xl font-extrabold text-slate-900 mt-1" id="kpiTenure">0 <span class="text-sm font-normal text-slate-500">Thn</span></h3>
+                    <div class="mt-2 text-xs text-purple-600 font-medium">Rata-rata Masa Kerja</div>
+                </div>
+            </div>
+
+            <!-- CHART MTD TOTAL DAILY HEADCOUNT -->
+            <div class="light-card rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h4 class="text-sm font-bold text-slate-800"><i class="fa-solid fa-chart-line text-amber-600 me-2"></i>Pergerakan Total Headcount Daily (MTD)</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">Tren riil per tanggal Snapshot_Date</p>
+                    </div>
+                    <span class="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-1 rounded-full font-medium">Snapshot Track</span>
+                </div>
+                <div class="h-64"><canvas id="mtdChart"></canvas></div>
+            </div>
+
+            <!-- CHART DIRECTORATE BREAKDOWN -->
+            <div class="light-card rounded-xl p-5 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-sm font-bold text-slate-800"><i class="fa-solid fa-building text-indigo-600 me-2"></i>Headcount Breakdown per Directorate</h4>
+                    <span class="text-xs text-slate-400"><i class="fa-solid fa-arrows-up-down me-1"></i>Scroll untuk melihat semua</span>
+                </div>
+                <div class="max-h-96 overflow-y-auto pr-2">
+                    <div class="relative h-[520px]">
+                        <canvas id="directorateChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARTS GRID ROW 1 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="light-card rounded-xl p-5 shadow-sm">
+                    <h4 class="text-sm font-bold text-slate-800 mb-4"><i class="fa-solid fa-venus-mars text-sky-500 me-2"></i>Gender Ratio</h4>
+                    <div class="h-60"><canvas id="genderChart"></canvas></div>
+                </div>
+
+                <div class="light-card rounded-xl p-5 shadow-sm">
+                    <h4 class="text-sm font-bold text-slate-800 mb-4"><i class="fa-solid fa-id-card text-amber-600 me-2"></i>Employment Status</h4>
+                    <div class="h-60"><canvas id="statusChart"></canvas></div>
+                </div>
+
+                <div class="light-card rounded-xl p-5 shadow-sm">
+                    <h4 class="text-sm font-bold text-slate-800 mb-4"><i class="fa-solid fa-people-roof text-purple-600 me-2"></i>Generation Mix</h4>
+                    <div class="h-60"><canvas id="genChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- CHARTS GRID ROW 2 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="light-card rounded-xl p-5 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-sm font-bold text-slate-800"><i class="fa-solid fa-map-location-dot text-amber-600 me-2"></i>Location Distribution</h4>
+                        <span class="text-xs text-slate-400"><i class="fa-solid fa-arrows-up-down me-1"></i>Scroll untuk melihat semua</span>
+                    </div>
+                    <div class="max-h-80 overflow-y-auto pr-1">
+                        <div class="relative h-[500px]">
+                            <canvas id="locationChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="light-card rounded-xl p-5 shadow-sm">
+                    <h4 class="text-sm font-bold text-slate-800 mb-4"><i class="fa-solid fa-sitemap text-blue-600 me-2"></i>Job Level Distribution</h4>
+                    <div class="h-80"><canvas id="jobChart"></canvas></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= 3. SCRIPT ENGINE ================= -->
+    <script>
+        // LINK CSV GOOGLE SHEETS LIVE PUBLISH TO WEB
+        const GOOGLE_SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaC1OOX5S440zhDrz1GN15BGMgktr7hZkRxUIgjJTBiTOYTGz2UvIwhJ_Wmq5D6FRdXveBmFuZ0Le8/pub?gid=0&single=true&output=csv";
+
+        const ADMIN_ACCOUNTS = [
+            { username: "admin", password: "admin123", name: "Super Admin" },
+            { username: "chandra", password: "dap2026password", name: "Chandra (HC)" },
+            { username: "hc.manager", password: "hcmanager2026", name: "HC Manager" }
+        ];
+
+        let rawEmployeeData = [];
+        let charts = {};
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+
+            const foundAdmin = ADMIN_ACCOUNTS.find(acc => acc.username === u && acc.password === p);
+
+            if (foundAdmin) {
+                document.getElementById('loggedInUserDisplay').innerHTML = `<i class="fa-solid fa-user-circle text-amber-600 me-1"></i> ${foundAdmin.name}`;
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('dashboardPage').classList.remove('hidden');
+                initCharts();
+                fetchGoogleSheetsData();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            document.getElementById('dashboardPage').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+        }
+
+        function fetchGoogleSheetsData() {
+            Papa.parse(GOOGLE_SHEETS_CSV_URL, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        rawEmployeeData = results.data.map(item => {
+                            let obj = {};
+                            for (let key in item) {
+                                if (key) {
+                                    obj[key.trim()] = item[key] ? item[key].toString().trim() : '';
+                                }
+                            }
+                            return obj;
+                        }).filter(d => d.Snapshot_Date && d.Snapshot_Date !== '');
+                    } else {
+                        rawEmployeeData = [];
+                    }
+                    populateFilterOptions();
+                    updateDashboard();
+                },
+                error: function(err) {
+                    console.error("Gagal membaca Google Sheets:", err);
+                    rawEmployeeData = [];
+                    populateFilterOptions();
+                    updateDashboard();
+                }
+            });
+        }
+
+        function initCharts() {
+            Chart.defaults.color = '#475569';
+
+            charts.mtd = new Chart(document.getElementById('mtdChart'), {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'Total Headcount', data: [], borderColor: '#D97706', backgroundColor: 'rgba(217, 119, 6, 0.12)', fill: true, tension: 0.2, pointRadius: 4, pointBackgroundColor: '#D97706' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } }
+            });
+
+            charts.directorate = new Chart(document.getElementById('directorateChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: 'Headcount', data: [], backgroundColor: '#6366F1', borderRadius: 6 }] },
+                options: { 
+                    indexAxis: 'y', 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        x: { grid: { color: '#F1F5F9' } }, 
+                        y: { grid: { display: false }, ticks: { font: { size: 10 }, autoSkip: false } } 
+                    } 
+                }
+            });
+
+            charts.gender = new Chart(document.getElementById('genderChart'), {
+                type: 'doughnut',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: ['#0284C7', '#EC4899'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            charts.status = new Chart(document.getElementById('statusChart'), {
+                type: 'doughnut',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: ['#D97706', '#0284C7', '#8B5CF6', '#EC4899'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            charts.gen = new Chart(document.getElementById('genChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: '#8B5CF6', borderRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } }
+            });
+
+            charts.loc = new Chart(document.getElementById('locationChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: '#D97706', borderRadius: 6 }] },
+                options: { 
+                    indexAxis: 'y', 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { grid: { color: '#F1F5F9' } }, 
+                        y: { grid: { display: false }, ticks: { font: { size: 10 }, autoSkip: false } } 
+                    } 
+                }
+            });
+
+            charts.job = new Chart(document.getElementById('jobChart'), {
+                type: 'bar',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: '#2563EB', borderRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } } }
+            });
+        }
+
+        function populateFilterOptions() {
+            const rawDates = rawEmployeeData.map(d => d.Snapshot_Date).filter(Boolean);
+            const dates = [...new Set(rawDates)].sort().reverse();
+            
+            const locs = [...new Set(rawEmployeeData.map(d => d.Work_Location))].filter(Boolean).sort();
+            const statuses = [...new Set(rawEmployeeData.map(d => d.Employment_Status))].filter(Boolean).sort();
+            const dirs = [...new Set(rawEmployeeData.map(d => d.Directorate))].filter(Boolean).sort();
+
+            const dateSelect = document.getElementById('filterDate');
+            dateSelect.innerHTML = '';
+            if (dates.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "ALL";
+                opt.innerText = "Semua Tanggal";
+                dateSelect.appendChild(opt);
+            } else {
+                dates.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d;
+                    opt.innerText = d;
+                    dateSelect.appendChild(opt);
+                });
+            }
+
+            fillSelect('filterLoc', locs, 'Semua Lokasi Kerja');
+            fillSelect('filterStatus', statuses, 'Semua Status Kepegawaian');
+            fillSelect('filterDirectorate', dirs, 'Semua Directorate');
+        }
+
+        function fillSelect(id, items, defaultText) {
+            const select = document.getElementById(id);
+            select.innerHTML = `<option value="ALL">${defaultText}</option>`;
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.innerText = item;
+                select.appendChild(opt);
+            });
+        }
+
+        function updateDashboard() {
+            const selDate = document.getElementById('filterDate').value;
+            const selLoc = document.getElementById('filterLoc').value;
+            const selStatus = document.getElementById('filterStatus').value;
+            const selDirectorate = document.getElementById('filterDirectorate').value;
+
+            // MTD Line Chart
+            const snapshotCounts = {};
+            rawEmployeeData.forEach(d => {
+                const dateVal = d.Snapshot_Date;
+                if (dateVal) {
+                    const matchLoc = (selLoc === 'ALL' || d.Work_Location === selLoc);
+                    const matchStatus = (selStatus === 'ALL' || d.Employment_Status === selStatus);
+                    const matchDir = (selDirectorate === 'ALL' || d.Directorate === selDirectorate);
+                    if (matchLoc && matchStatus && matchDir) {
+                        snapshotCounts[dateVal] = (snapshotCounts[dateVal] || 0) + 1;
+                    }
+                }
+            });
+
+            const sortedDates = Object.keys(snapshotCounts).sort();
+            charts.mtd.data.labels = sortedDates;
+            charts.mtd.data.datasets[0].data = sortedDates.map(d => snapshotCounts[d]);
+            charts.mtd.update();
+
+            // Filter Dataset Utama
+            const filtered = rawEmployeeData.filter(d => {
+                const matchDate = (selDate === 'ALL' || !selDate || d.Snapshot_Date === selDate);
+                const matchLoc = (selLoc === 'ALL' || d.Work_Location === selLoc);
+                const matchStatus = (selStatus === 'ALL' || d.Employment_Status === selStatus);
+                const matchDir = (selDirectorate === 'ALL' || d.Directorate === selDirectorate);
+                return matchDate && matchLoc && matchStatus && matchDir;
+            });
+
+            // Update KPI Scorecards
+            const total = filtered.length;
+            const permCount = filtered.filter(d => d.Employment_Status === 'PERMANENT').length;
+            const avgAge = total ? (filtered.reduce((a,b) => a + Number(b.Age||0), 0) / total).toFixed(1) : 0;
+            const avgTenure = total ? (filtered.reduce((a,b) => a + (Number(b.Tenure_Months||0)/12), 0) / total).toFixed(1) : 0;
+
+            document.getElementById('kpiTotal').innerText = total.toLocaleString();
+            document.getElementById('kpiDateDisplay').innerText = `Posisi Tanggal: ${selDate || '-'}`;
+            document.getElementById('kpiPermanent').innerText = total ? ((permCount / total) * 100).toFixed(1) + '%' : '0%';
+            document.getElementById('kpiPermSub').innerText = permCount.toLocaleString() + ' Karyawan Tetap';
+            document.getElementById('kpiAge').innerHTML = `${avgAge} <span class="text-sm font-normal text-slate-500">Thn</span>`;
+            document.getElementById('kpiTenure').innerHTML = `${avgTenure} <span class="text-sm font-normal text-slate-500">Thn</span>`;
+
+            // Update Breakdown Charts
+            updateChartData(charts.directorate, getCounts(filtered, 'Directorate'));
+            updateChartData(charts.gender, getCounts(filtered, 'Gender'));
+            updateChartData(charts.status, getCounts(filtered, 'Employment_Status'));
+            updateChartData(charts.gen, getCounts(filtered, 'Generation'));
+            updateChartData(charts.loc, getCounts(filtered, 'Work_Location'));
+            updateChartData(charts.job, getCounts(filtered, 'Job_Grade_Category'));
+        }
+
+        function getCounts(arr, key) {
+            return arr.reduce((acc, curr) => {
+                const val = (curr[key] && curr[key].toString().trim()) ? curr[key].toString().trim() : 'Unassigned';
+                acc[val] = (acc[val] || 0) + 1;
+                return acc;
+            }, {});
+        }
+
+        function updateChartData(chart, countsObj) {
+            delete countsObj['Unassigned'];
+            
+            const sortedEntries = Object.entries(countsObj).sort((a, b) => b[1] - a[1]);
+            chart.data.labels = sortedEntries.map(e => e[0]);
+            chart.data.datasets[0].data = sortedEntries.map(e => e[1]);
+            
+            if (chart.config.type === 'doughnut' && chart.canvas.id === 'statusChart') {
+                const colorMap = {
+                    'PERMANENT': '#D97706',
+                    'CONTRACT': '#0284C7',
+                    'PROBATION': '#8B5CF6'
+                };
+                chart.data.datasets[0].backgroundColor = sortedEntries.map(e => colorMap[e[0]] || '#94A3B8');
+            }
+            
+            chart.update();
+        }
+    </script>
+</body>
+</html>
